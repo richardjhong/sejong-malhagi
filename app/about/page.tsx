@@ -156,10 +156,10 @@ const About = () => {
                 </table>
                 <p className="text-xs text-gray-500 dark:text-gray-400 mt-2 italic">
                   This particular case involves both liquidization and
-                  nasalization. The ㄹ following a ㄱ, ㄷ, ㅂ turns into ㄴ.
-                  Then using the above nasalization rule regarding final
-                  consonants ㄱ, ㄷ, ㅂ, the final consonants turn into
-                  nasalized sounds.
+                  nasalization. The ㄹ following a ㄱ, ㄷ, ㅂ turns into ㄴ
+                  (liquidation). Then using the above nasalization rule
+                  regarding final consonants ㄱ, ㄷ, ㅂ, the final consonants
+                  turn into nasalized sounds (nasalization).
                 </p>
               </div>
             </div>
