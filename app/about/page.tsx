@@ -22,7 +22,7 @@ const About = () => {
               </p>
               <div className="overflow-x-auto mt-4">
                 <h4 className="text-lg font-medium mb-2 text-gray-800 dark:text-gray-200">
-                  Table 1: Plosive → Nasals
+                  Plosive (ㄱ, ㄷ, ㅂ) → Nasalization
                 </h4>
                 <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
                   <thead>
@@ -90,16 +90,16 @@ const About = () => {
 
               <div className="overflow-x-auto mt-8">
                 <h4 className="text-lg font-medium mb-2 text-gray-800 dark:text-gray-200">
-                  Table 2: Fricatives & Liquids → Nasals
+                  ㄹ → Nasalization
                 </h4>
                 <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
                   <thead>
                     <tr className="bg-gray-50 dark:bg-gray-800">
                       <th className="px-4 py-3 text-left text-sm font-semibold text-gray-900 dark:text-white">
-                        First Syllable Final Consonant
+                        Final Consonant
                       </th>
                       <th className="px-4 py-3 text-left text-sm font-semibold text-gray-900 dark:text-white">
-                        Following Syllable First Consonant Sound
+                        Following Consonant
                       </th>
                       <th className="px-4 py-3 text-left text-sm font-semibold text-gray-900 dark:text-white">
                         Result
@@ -112,30 +112,30 @@ const About = () => {
                   <tbody className="divide-y divide-gray-200 dark:divide-gray-700">
                     <tr className="bg-white dark:bg-gray-900">
                       <td className="px-4 py-3 text-sm text-gray-600 dark:text-gray-300">
-                        ㅅ, ㅆ, ㅈ, ㅊ, ㅎ
+                        ㅁ, ㅇ
                       </td>
                       <td className="px-4 py-3 text-sm text-gray-600 dark:text-gray-300">
-                        ㄴ, ㅁ
+                        ㄹ
                       </td>
                       <td className="px-4 py-3 text-sm text-gray-600 dark:text-gray-300">
                         ㄴ
                       </td>
                       <td className="px-4 py-3 text-sm text-gray-600 dark:text-gray-300">
-                        있는 → 인는
+                        담력 → 담녁
                       </td>
                     </tr>
                     <tr className="bg-gray-50 dark:bg-gray-800">
                       <td className="px-4 py-3 text-sm text-gray-600 dark:text-gray-300">
-                        ㅂ, ㅍ
+                        ㄱ, ㄷ, ㅂ
                       </td>
                       <td className="px-4 py-3 text-sm text-gray-600 dark:text-gray-300">
-                        ㄴ, ㅁ
+                        ㄹ
                       </td>
                       <td className="px-4 py-3 text-sm text-gray-600 dark:text-gray-300">
-                        ㅁ
+                        ㅇ, ㄴ, ㅁ + ㄴ*
                       </td>
                       <td className="px-4 py-3 text-sm text-gray-600 dark:text-gray-300">
-                        입력 → 임녁
+                        협력 → 혐녁
                       </td>
                     </tr>
                     <tr className="bg-white dark:bg-gray-900">
@@ -154,21 +154,14 @@ const About = () => {
                     </tr>
                   </tbody>
                 </table>
+                <p className="text-xs text-gray-500 dark:text-gray-400 mt-2 italic">
+                  This particular case involves both liquidization and
+                  nasalization. The ㄹ following a ㄱ, ㄷ, ㅂ turns into ㄴ.
+                  Then using the above nasalization rule regarding final
+                  consonants ㄱ, ㄷ, ㅂ, the final consonants turn into
+                  nasalized sounds.
+                </p>
               </div>
-            </div>
-
-            <div>
-              <h3 className="text-xl font-semibold mb-2 text-gray-900 dark:text-white">
-                Liquidization (유음화)
-              </h3>
-              <p className="text-gray-600 dark:text-gray-300">
-                Liquidization occurs when ㄴ and ㄹ meet, creating a smooth,
-                flowing sound:
-              </p>
-              <ul className="list-disc list-inside mt-2 text-gray-600 dark:text-gray-300">
-                <li>ㄴ + ㄹ → ㄹ + ㄹ (e.g., 신라 → 실라)</li>
-                <li>ㄹ + ㄴ → ㄹ + ㄹ (e.g., 설날 → 설랄)</li>
-              </ul>
             </div>
           </div>
         </section>
