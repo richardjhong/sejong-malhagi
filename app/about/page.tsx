@@ -138,20 +138,6 @@ const About = () => {
                         협력 → 혐녁
                       </td>
                     </tr>
-                    <tr className="bg-white dark:bg-gray-900">
-                      <td className="px-4 py-3 text-sm text-gray-600 dark:text-gray-300">
-                        ㄹ
-                      </td>
-                      <td className="px-4 py-3 text-sm text-gray-600 dark:text-gray-300">
-                        ㄴ
-                      </td>
-                      <td className="px-4 py-3 text-sm text-gray-600 dark:text-gray-300">
-                        ㄴ + ㄴ
-                      </td>
-                      <td className="px-4 py-3 text-sm text-gray-600 dark:text-gray-300">
-                        설날 → 설랄
-                      </td>
-                    </tr>
                   </tbody>
                 </table>
                 <p className="text-xs text-gray-500 dark:text-gray-400 mt-2 italic">
