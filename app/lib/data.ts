@@ -28,3 +28,39 @@ export const getNasalizationExamples = async (): Promise<Example[]> => {
     },
   ];
 };
+
+export const getLiquidizationExamples = async (): Promise<Example[]> => {
+  // await new Promise((resolve) => setTimeout(resolve, 3000));
+  return [
+    {
+      word: "신라",
+      pronunciation: "실라",
+      meaning: "Silla (ancient Korean kingdom)",
+      rule: "ㄴ + ㄹ → ㄹ + ㄹ",
+    },
+    {
+      word: "설날",
+      pronunciation: "설랄",
+      meaning: "New Year's Day",
+      rule: "ㄹ + ㄴ → ㄹ + ㄹ",
+    },
+    {
+      word: "한라산",
+      pronunciation: "할라산",
+      meaning: "Mount Halla",
+      rule: "ㄴ + ㄹ → ㄹ + ㄹ",
+    },
+    {
+      word: "칼날",
+      pronunciation: "칼랄",
+      meaning: "Blade edge",
+      rule: "ㄹ + ㄴ → ㄹ + ㄹ",
+    },
+    {
+      word: "일년",
+      pronunciation: "일련",
+      meaning: "One year",
+      rule: "ㄹ + ㄴ → ㄹ + ㄹ",
+    },
+  ];
+};
