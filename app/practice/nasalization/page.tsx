@@ -1,5 +1,5 @@
 import { Suspense } from "react";
-import NasalizationPractice from "./NasalizationPractice";
+import PronunciationPractice from "@/app/components/PronunciationPractice";
 import { getNasalizationExamples } from "@/app/lib/data";
 
 const ExampleSkeleton = () => (
@@ -15,7 +15,7 @@ const ExampleSkeleton = () => (
 const NasalizationExamplesLoader = async () => {
   const examples = await getNasalizationExamples();
 
-  return <NasalizationPractice examples={examples} />;
+  return <PronunciationPractice examples={examples} />;
 };
 
 const NasalizationPage = async () => {
