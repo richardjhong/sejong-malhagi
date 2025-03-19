@@ -1,14 +1,14 @@
 "use client";
 
 import { useState, useRef } from "react";
-import { Example } from "@/app/lib/data";
 import { verifyPronunciation } from "@/app/utils/actions";
+import type { Example } from "@/app/lib/data";
 
-interface NasalizationPracticeProps {
+interface PronunciationPracticeProps {
   examples: Example[];
 }
 
-const NasalizationPractice = ({ examples }: NasalizationPracticeProps) => {
+const PronunciationPractice = ({ examples }: PronunciationPracticeProps) => {
   const [currentExample, setCurrentExample] = useState(0);
   const [showPronunciation, setShowPronunciation] = useState(false);
   const [userAnswer, setUserAnswer] = useState("");
@@ -118,12 +118,12 @@ const NasalizationPractice = ({ examples }: NasalizationPracticeProps) => {
             >
               Check
             </button>
-            {/* <button
+            <button
               onClick={() => setShowPronunciation(!showPronunciation)}
               className="bg-blue-500 hover:bg-blue-600 text-white font-bold py-2 px-4 rounded"
             >
               {showPronunciation ? "Hide Answer" : "Show Answer"}
-            </button> */}
+            </button>
           </div>
 
           {feedback && (
@@ -164,4 +164,4 @@ const NasalizationPractice = ({ examples }: NasalizationPracticeProps) => {
   );
 };
 
-export default NasalizationPractice;
+export default PronunciationPractice;
