@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useRef } from "react";
+import { useState, useRef, useCallback, useMemo } from "react";
 import { verifyPronunciation } from "@/app/utils/actions";
 import type { Example } from "@/app/lib/data";
 
@@ -21,28 +21,29 @@ const PronunciationPractice = ({ examples }: PronunciationPracticeProps) => {
   );
   const inputRef = useRef<HTMLInputElement>(null);
 
-  const progressPercentage = Math.round(
-    (answeredExamples.size / examples.length) * 100
+  const progressPercentage = useMemo(
+    () => Math.round((answeredExamples.size / examples.length) * 100),
+    [answeredExamples.size, examples.length]
   );
 
-  const handleNextExample = () => {
-    setCurrentExample((prev) => (prev + 1) % examples.length);
-    resetExampleState();
-  };
-
-  const handlePrevExample = () => {
-    setCurrentExample((prev) => (prev - 1 + examples.length) % examples.length);
-    resetExampleState();
-  };
-
-  const resetExampleState = () => {
+  const resetExampleState = useCallback(() => {
     setShowPronunciation(false);
     setUserAnswer("");
     setFeedback(null);
     if (inputRef.current) inputRef.current.focus();
-  };
+  }, []);
 
-  const handleVerify = async () => {
+  const handleNextExample = useCallback(() => {
+    setCurrentExample((prev) => (prev + 1) % examples.length);
+    resetExampleState();
+  }, [examples.length, resetExampleState]);
+
+  const handlePrevExample = useCallback(() => {
+    setCurrentExample((prev) => (prev - 1 + examples.length) % examples.length);
+    resetExampleState();
+  }, [examples.length, resetExampleState]);
+
+  const handleVerify = useCallback(async () => {
     if (!userAnswer.trim()) return;
 
     const result = await verifyPronunciation(
@@ -58,7 +59,7 @@ const PronunciationPractice = ({ examples }: PronunciationPracticeProps) => {
       newAnswered.add(currentExample);
       setAnsweredExamples(newAnswered);
     }
-  };
+  }, [userAnswer, examples, currentExample, answeredExamples]);
 
   return (
     <div className="max-w-2xl mx-auto">
@@ -118,12 +119,12 @@ const PronunciationPractice = ({ examples }: PronunciationPracticeProps) => {
             >
               Check
             </button>
-            <button
+            {/* <button
               onClick={() => setShowPronunciation(!showPronunciation)}
               className="bg-blue-500 hover:bg-blue-600 text-white font-bold py-2 px-4 rounded"
             >
               {showPronunciation ? "Hide Answer" : "Show Answer"}
-            </button>
+            </button> */}
           </div>
 
           {feedback && (

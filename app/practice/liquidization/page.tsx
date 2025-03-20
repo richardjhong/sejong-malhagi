@@ -1,5 +1,6 @@
 import { Suspense } from "react";
 import PronunciationPractice from "@/app/components/PronunciationPractice";
+import { fetchPronunciationExamplesFromAI } from "@/app/utils/actions";
 import { getLiquidizationExamples } from "@/app/lib/data";
 
 const ExampleSkeleton = () => (
@@ -13,9 +14,31 @@ const ExampleSkeleton = () => (
 );
 
 const LiquidizationExamplesLoader = async () => {
-  const examples = await getLiquidizationExamples();
+  try {
+    console.log("🔍 Fetching liquidization examples from Perplexity AI...");
+    const aiExamples = await fetchPronunciationExamplesFromAI(
+      "liquidization",
+      5
+    );
 
-  return <PronunciationPractice examples={examples} />;
+    console.log(
+      "✅ Received AI examples:",
+      JSON.stringify(aiExamples, null, 2)
+    );
+    console.log(
+      `📊 Retrieved ${aiExamples.length} liquidization examples from AI`
+    );
+
+    if (aiExamples && aiExamples.length >= 3) {
+      return <PronunciationPractice examples={aiExamples} />;
+    }
+  } catch (error) {
+    console.error("❌ Failed to fetch AI examples:", error);
+  }
+
+  console.log("⚠️ Falling back to static liquidization examples");
+  const staticExamples = await getLiquidizationExamples();
+  return <PronunciationPractice examples={staticExamples} />;
 };
 
 const LiquidizationPage = async () => {
