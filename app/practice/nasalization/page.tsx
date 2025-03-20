@@ -1,5 +1,6 @@
 import { Suspense } from "react";
 import PronunciationPractice from "@/app/components/PronunciationPractice";
+import { fetchPronunciationExamplesFromAI } from "@/app/utils/actions";
 import { getNasalizationExamples } from "@/app/lib/data";
 
 const ExampleSkeleton = () => (
@@ -13,9 +14,31 @@ const ExampleSkeleton = () => (
 );
 
 const NasalizationExamplesLoader = async () => {
-  const examples = await getNasalizationExamples();
+  try {
+    console.log("🔍 Fetching nasalization examples from Perplexity AI...");
+    const aiExamples = await fetchPronunciationExamplesFromAI(
+      "nasalization",
+      5
+    );
 
-  return <PronunciationPractice examples={examples} />;
+    console.log(
+      "✅ Received AI examples:",
+      JSON.stringify(aiExamples, null, 2)
+    );
+    console.log(
+      `📊 Retrieved ${aiExamples.length} nasalization examples from AI`
+    );
+
+    if (aiExamples && aiExamples.length >= 3) {
+      return <PronunciationPractice examples={aiExamples} />;
+    }
+  } catch (error) {
+    console.error("❌ Failed to fetch AI examples:", error);
+  }
+
+  console.log("⚠️ Falling back to static nasalization examples");
+  const staticExamples = await getNasalizationExamples();
+  return <PronunciationPractice examples={staticExamples} />;
 };
 
 const NasalizationPage = async () => {

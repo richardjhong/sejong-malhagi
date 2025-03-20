@@ -1,36 +1,63 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# 세종 말하기 (Sejong Malhagi)
 
-## Getting Started
+An interactive Korean pronunciation practice app helping learners master Korean pronunciation rules like nasalization (비음화) and liquidization (유음화).
 
-First, run the development server:
+## Features
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
-```
+- Interactive practice with Korean pronunciation rules
+- Real-time feedback on pronunciation attempts
+- AI-generated examples using Perplexity AI
+- Fallback to static examples when API is unavailable
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+## Setup
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+### Prerequisites
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+- Node.js 18+ and npm/yarn
+- Perplexity AI API key (for dynamic examples)
 
-## Learn More
+### Installation
 
-To learn more about Next.js, take a look at the following resources:
+1. Clone the repository:
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+   ```bash
+   git clone https://github.com/yourusername/sejong-malhalgi.git
+   cd sejong-malhalgi
+   ```
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+2. Install dependencies:
 
-## Deploy on Vercel
+   ```bash
+   npm install
+   # or
+   yarn
+   ```
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+3. Set up environment variables:
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+   - Create `.env.local` in the project root
+   - Add your Perplexity AI API key:
+     ```
+     PERPLEXITY_API_KEY=your_api_key_here
+     ```
+   - You can obtain a Perplexity API key from: https://www.perplexity.ai/settings/api
+
+4. Start the development server:
+
+   ```bash
+   npm run dev
+   # or
+   yarn dev
+   ```
+
+5. Open [http://localhost:3000](http://localhost:3000) in your browser.
+
+## Dynamic AI Examples
+
+The app uses Perplexity AI to generate dynamic, authentic Korean pronunciation examples. If the API is unavailable or the key is not configured, it will fall back to static examples.
+
+To use only static examples, simply don't set the `PERPLEXITY_API_KEY` environment variable.
+
+## License
+
+MIT

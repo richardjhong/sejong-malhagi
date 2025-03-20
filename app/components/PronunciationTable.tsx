@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useMemo } from "react";
 
 interface TableRow {
   firstConsonant: string;
@@ -18,6 +18,32 @@ const PronunciationTable: React.FC<PronunciationTableProps> = ({
   rows,
   footnote,
 }) => {
+  const renderedRows = useMemo(() => {
+    return rows.map((row, index) => (
+      <tr
+        key={index}
+        className={
+          index % 2 === 0
+            ? "bg-white dark:bg-gray-900"
+            : "bg-gray-50 dark:bg-gray-800"
+        }
+      >
+        <td className="px-4 py-3 text-sm text-gray-600 dark:text-gray-300">
+          {row.firstConsonant}
+        </td>
+        <td className="px-4 py-3 text-sm text-gray-600 dark:text-gray-300">
+          {row.followingSound}
+        </td>
+        <td className="px-4 py-3 text-sm text-gray-600 dark:text-gray-300">
+          {row.result}
+        </td>
+        <td className="px-4 py-3 text-sm text-gray-600 dark:text-gray-300">
+          {row.example}
+        </td>
+      </tr>
+    ));
+  }, [rows]);
+
   return (
     <div className="overflow-x-auto mt-4">
       <h4 className="text-lg font-medium mb-2 text-gray-800 dark:text-gray-200">
@@ -41,29 +67,7 @@ const PronunciationTable: React.FC<PronunciationTableProps> = ({
           </tr>
         </thead>
         <tbody className="divide-y divide-gray-200 dark:divide-gray-700">
-          {rows.map((row, index) => (
-            <tr
-              key={index}
-              className={
-                index % 2 === 0
-                  ? "bg-white dark:bg-gray-900"
-                  : "bg-gray-50 dark:bg-gray-800"
-              }
-            >
-              <td className="px-4 py-3 text-sm text-gray-600 dark:text-gray-300">
-                {row.firstConsonant}
-              </td>
-              <td className="px-4 py-3 text-sm text-gray-600 dark:text-gray-300">
-                {row.followingSound}
-              </td>
-              <td className="px-4 py-3 text-sm text-gray-600 dark:text-gray-300">
-                {row.result}
-              </td>
-              <td className="px-4 py-3 text-sm text-gray-600 dark:text-gray-300">
-                {row.example}
-              </td>
-            </tr>
-          ))}
+          {renderedRows}
         </tbody>
       </table>
       {footnote && (
