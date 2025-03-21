@@ -30,7 +30,12 @@ const LiquidizationExamplesLoader = async () => {
     );
 
     if (aiExamples && aiExamples.length >= 3) {
-      return <PronunciationPractice examples={aiExamples} />;
+      return (
+        <PronunciationPractice
+          examples={aiExamples}
+          ruleType="liquidization"
+        />
+      );
     }
   } catch (error) {
     console.error("❌ Failed to fetch AI examples:", error);
@@ -38,7 +43,12 @@ const LiquidizationExamplesLoader = async () => {
 
   console.log("⚠️ Falling back to static liquidization examples");
   const staticExamples = await getLiquidizationExamples();
-  return <PronunciationPractice examples={staticExamples} />;
+  return (
+    <PronunciationPractice
+      examples={staticExamples}
+      ruleType="liquidization"
+    />
+  );
 };
 
 const LiquidizationPage = async () => {

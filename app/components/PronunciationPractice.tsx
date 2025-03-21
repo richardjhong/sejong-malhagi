@@ -6,9 +6,13 @@ import type { Example } from "@/app/lib/data";
 
 interface PronunciationPracticeProps {
   examples: Example[];
+  ruleType: "nasalization" | "liquidization";
 }
 
-const PronunciationPractice = ({ examples }: PronunciationPracticeProps) => {
+const PronunciationPractice = ({
+  examples,
+  ruleType,
+}: PronunciationPracticeProps) => {
   const [currentExample, setCurrentExample] = useState(0);
   const [showPronunciation, setShowPronunciation] = useState(false);
   const [userAnswer, setUserAnswer] = useState("");
@@ -46,20 +50,31 @@ const PronunciationPractice = ({ examples }: PronunciationPracticeProps) => {
   const handleVerify = useCallback(async () => {
     if (!userAnswer.trim()) return;
 
-    const result = await verifyPronunciation(
-      userAnswer,
-      examples[currentExample].pronunciation
-    );
+    try {
+      const result = await verifyPronunciation(
+        userAnswer,
+        examples[currentExample].pronunciation,
+        examples[currentExample],
+        ruleType
+      );
 
-    setFeedback(result);
-    setShowPronunciation(true);
+      setFeedback(result);
+      setShowPronunciation(true);
 
-    if (result.isCorrect) {
-      const newAnswered = new Set(answeredExamples);
-      newAnswered.add(currentExample);
-      setAnsweredExamples(newAnswered);
+      if (result.isCorrect) {
+        // Update local state
+        const newAnswered = new Set(answeredExamples);
+        newAnswered.add(currentExample);
+        setAnsweredExamples(newAnswered);
+      }
+    } catch (error) {
+      console.error("Error verifying pronunciation:", error);
+      setFeedback({
+        isCorrect: false,
+        feedback: "Error checking answer. Please try again.",
+      });
     }
-  }, [userAnswer, examples, currentExample, answeredExamples]);
+  }, [userAnswer, examples, currentExample, answeredExamples, ruleType]);
 
   return (
     <div className="max-w-2xl mx-auto">

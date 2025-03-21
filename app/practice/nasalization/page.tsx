@@ -15,22 +15,18 @@ const ExampleSkeleton = () => (
 
 const NasalizationExamplesLoader = async () => {
   try {
-    console.log("🔍 Fetching nasalization examples from Perplexity AI...");
     const aiExamples = await fetchPronunciationExamplesFromAI(
       "nasalization",
       5
     );
 
-    console.log(
-      "✅ Received AI examples:",
-      JSON.stringify(aiExamples, null, 2)
-    );
-    console.log(
-      `📊 Retrieved ${aiExamples.length} nasalization examples from AI`
-    );
-
     if (aiExamples && aiExamples.length >= 3) {
-      return <PronunciationPractice examples={aiExamples} />;
+      return (
+        <PronunciationPractice
+          examples={aiExamples}
+          ruleType="nasalization"
+        />
+      );
     }
   } catch (error) {
     console.error("❌ Failed to fetch AI examples:", error);
@@ -38,7 +34,12 @@ const NasalizationExamplesLoader = async () => {
 
   console.log("⚠️ Falling back to static nasalization examples");
   const staticExamples = await getNasalizationExamples();
-  return <PronunciationPractice examples={staticExamples} />;
+  return (
+    <PronunciationPractice
+      examples={staticExamples}
+      ruleType="nasalization"
+    />
+  );
 };
 
 const NasalizationPage = async () => {

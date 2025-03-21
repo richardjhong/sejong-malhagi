@@ -3,6 +3,7 @@ export interface Example {
   pronunciation: string;
   meaning: string;
   rule: string;
+  wordStatus?: "correct" | "incorrect" | "unanswered";
 }
 
 export const getNasalizationExamples = async (): Promise<Example[]> => {

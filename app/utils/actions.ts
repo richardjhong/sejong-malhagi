@@ -10,9 +10,23 @@ const redisCredentials = {
 };
 
 const getRedisClient = () => {
-  return new Redis(
-    `rediss://default:${redisCredentials.password}@${redisCredentials.url}:${redisCredentials.port}`
-  );
+  if (
+    !redisCredentials.url ||
+    !redisCredentials.password ||
+    !redisCredentials.port
+  ) {
+    console.error("❌ Missing Redis credentials");
+    throw new Error("Redis credentials missing");
+  }
+
+  const connectionString = `rediss://default:${redisCredentials.password}@${redisCredentials.url}:${redisCredentials.port}`;
+  const redis = new Redis(connectionString);
+
+  redis.on("error", (err) => {
+    console.error("❌ Redis connection error:", err);
+  });
+
+  return redis;
 };
 
 export const verifyPronunciation = async (
@@ -23,31 +37,87 @@ export const verifyPronunciation = async (
 ) => {
   const isCorrect = userAnswer.trim() === correctAnswer.trim();
 
-  if (!isCorrect) {
-    try {
-      const redis = getRedisClient();
-      const incorrectWordsKey = `incorrect_words:${ruleType}`;
-      let incorrectWords = [];
-      const storedWords = await redis.get(incorrectWordsKey);
+  try {
+    if (
+      !redisCredentials.url ||
+      !redisCredentials.password ||
+      !redisCredentials.port
+    ) {
+      console.error("❌ Redis credentials missing for verification");
+      throw new Error("Redis credentials missing");
+    }
 
-      if (storedWords) {
-        incorrectWords = JSON.parse(storedWords);
+    const redis = getRedisClient();
+    const correctWordsKey = `correct_words:${ruleType}`;
+    const learningWordsKey = `learning_words:${ruleType}`;
+
+    // Update example with new status
+    const updatedExample = {
+      ...example,
+      wordStatus: isCorrect ? "correct" : "incorrect",
+    };
+
+    if (isCorrect) {
+      // Move from learning to correct words
+      let correctWords = [];
+      const storedCorrectWords = await redis.get(correctWordsKey);
+
+      if (storedCorrectWords) {
+        correctWords = JSON.parse(storedCorrectWords);
       }
 
-      const existingIndex = incorrectWords.findIndex(
+      // Add to correct words if not already present
+      const existingIndex = correctWords.findIndex(
         (w: Example) => w.word === example.word
       );
 
       if (existingIndex === -1) {
-        incorrectWords.push(example);
-        await redis.set(incorrectWordsKey, JSON.stringify(incorrectWords));
-        console.log(`Added incorrect word: ${example.word}`);
+        correctWords.push(updatedExample);
+        await redis.set(correctWordsKey, JSON.stringify(correctWords));
       }
 
-      await redis.quit();
-    } catch (error) {
-      console.error(`❌ Error storing incorrect word: ${error}`);
+      // Remove from learning words if present
+      const storedLearningWords = await redis.get(learningWordsKey);
+
+      if (storedLearningWords) {
+        const learningWords = JSON.parse(storedLearningWords);
+
+        const learningIndex = learningWords.findIndex(
+          (w: Example) => w.word === example.word
+        );
+
+        if (learningIndex !== -1) {
+          learningWords.splice(learningIndex, 1);
+          await redis.set(learningWordsKey, JSON.stringify(learningWords));
+        }
+      }
+    } else {
+      // Update in learning words
+      let learningWords = [];
+      const storedLearningWords = await redis.get(learningWordsKey);
+
+      if (storedLearningWords) {
+        learningWords = JSON.parse(storedLearningWords);
+      }
+
+      const existingIndex = learningWords.findIndex(
+        (w: Example) => w.word === example.word
+      );
+
+      if (existingIndex !== -1) {
+        // Update status to incorrect
+        learningWords[existingIndex] = updatedExample;
+      } else {
+        // Add to learning words
+        learningWords.push(updatedExample);
+      }
+
+      await redis.set(learningWordsKey, JSON.stringify(learningWords));
     }
+
+    await redis.quit();
+  } catch (error) {
+    console.error(`Error updating word status:`, error);
   }
 
   return {
@@ -73,35 +143,57 @@ export async function fetchPronunciationExamplesFromAI(
   ruleType: PronunciationRuleType,
   count: number = 5
 ): Promise<Example[]> {
-  console.log(
-    `🚀 Starting fetchPronunciationExamplesFromAI for ${ruleType}...`
-  );
-
   try {
     const redis = getRedisClient();
     const historyKey = `chat_history:${ruleType}`;
+    const correctWordsKey = `correct_words:${ruleType}`;
+    const learningWordsKey = `learning_words:${ruleType}`;
+
+    // First check if we have existing learning words (incorrect or unanswered)
+    let learningWords: Example[] = [];
+    const storedLearningWords = await redis.get(learningWordsKey);
+    if (storedLearningWords) {
+      learningWords = JSON.parse(storedLearningWords);
+    }
+
+    // Get correct words to avoid duplicates
+    let correctWords: Example[] = [];
+    const storedCorrectWords = await redis.get(correctWordsKey);
+    if (storedCorrectWords) {
+      correctWords = JSON.parse(storedCorrectWords);
+    }
+
+    // If we have enough learning words, return them
+    if (learningWords.length >= count) {
+      await redis.quit();
+      return learningWords.slice(0, count);
+    }
+
+    // If we have some but not enough learning words, we'll need to get more
+    const neededCount = count - learningWords.length;
 
     let chatHistory: string[] = [];
     try {
       const storedHistory = await redis.get(historyKey);
       if (storedHistory) {
         chatHistory = JSON.parse(storedHistory);
-        console.log(
-          `📚 Retrieved chat history for ${ruleType}, ${chatHistory.length} messages`
-        );
       }
     } catch (redisError) {
-      console.warn(`⚠️ Could not retrieve chat history: ${redisError}`);
+      console.warn(`Could not retrieve chat history: ${redisError}`);
+    }
+
+    // If we don't need any new words, return what we have
+    if (neededCount <= 0) {
+      await redis.quit();
+      return learningWords;
     }
 
     const apiKey = process.env.PERPLEXITY_API_KEY;
     if (!apiKey) {
-      console.error("❌ Perplexity API key is missing");
+      console.error("Perplexity API key is missing");
       await redis.quit();
       throw new Error("API key not configured");
     }
-
-    console.log(`✓ API key found, length: ${apiKey.length} chars`);
 
     const ruleDetails = {
       nasalization: {
@@ -114,12 +206,14 @@ export async function fetchPronunciationExamplesFromAI(
             pronunciation: "항년",
             meaning: "Grade (in school)",
             rule: "ㄱ + ㄴ → ㅇ + ㄴ",
+            wordStatus: "unanswered",
           },
           {
             word: "법률",
             pronunciation: "범뉼",
             meaning: "Law",
             rule: "ㅂ + ㄹ → ㅁ + ㄴ",
+            wordStatus: "unanswered",
           },
         ],
       },
@@ -133,12 +227,14 @@ export async function fetchPronunciationExamplesFromAI(
             pronunciation: "실라",
             meaning: "Silla (ancient Korean kingdom)",
             rule: "ㄴ + ㄹ → ㄹ + ㄹ",
+            wordStatus: "unanswered",
           },
           {
             word: "설날",
             pronunciation: "설랄",
             meaning: "New Year's Day",
             rule: "ㄹ + ㄴ → ㄹ + ㄹ",
+            wordStatus: "unanswered",
           },
         ],
       },
@@ -146,7 +242,13 @@ export async function fetchPronunciationExamplesFromAI(
 
     const ruleInfo = ruleDetails[ruleType];
 
-    const prompt = `Generate ${count} authentic examples of Korean ${ruleType} (${
+    // Create a set of existing words to avoid duplicates
+    const existingWords = new Set([
+      ...correctWords.map((w) => w.word),
+      ...learningWords.map((w) => w.word),
+    ]);
+
+    const prompt = `Generate ${neededCount} authentic examples of Korean ${ruleType} (${
       ruleInfo.koreanName
     }) ${ruleInfo.description}. 
     
@@ -166,6 +268,9 @@ export async function fetchPronunciationExamplesFromAI(
     4. DO NOT include any examples that don't perfectly match these rules. No exceptions.
     5. If you are unsure whether an example follows the rules, DO NOT include it and generate a different example.
     6. Review the previous chat history to avoid repeating previous examples.
+    7. Do NOT include any of these words that have already been answered: ${Array.from(
+      existingWords
+    ).join(", ")}
     
     For each example, include:
     1. The Korean word (using Hangul)
@@ -174,12 +279,10 @@ export async function fetchPronunciationExamplesFromAI(
     4. The specific rule applied (must be one of the rules listed above)
     
     Make sure the examples are varied in complexity and common in everyday Korean.
-    Format the response as a valid JSON array with objects having these fields: word, pronunciation, meaning, rule. 
+    Format the response as a valid JSON array with objects having these fields: word, pronunciation, meaning, rule, wordStatus. 
+    The wordStatus field should ALWAYS be set to "unanswered" for all examples.
     
     IMPORTANT: Return ONLY the raw JSON array WITHOUT any markdown formatting, code blocks, or explanatory text. Do not wrap the JSON in \`\`\` or any other formatting. The response should begin with [ and end with ] and be valid JSON that can be directly parsed.`;
-
-    console.log(`📝 Generated prompt for ${ruleType}:`, prompt);
-    console.log(`📡 Calling Perplexity API...`);
 
     const randomSeed = Math.floor(Math.random() * 1000000).toString();
     const userMessage = `${prompt}\n\nRemember to ONLY return a valid JSON array. Seed: ${randomSeed}`;
@@ -212,8 +315,6 @@ export async function fetchPronunciationExamplesFromAI(
         content: userMessage,
       });
 
-      console.log(`📄 Sending ${messages.length} messages to API`);
-
       const response = await fetch(
         "https://api.perplexity.ai/chat/completions",
         {
@@ -235,30 +336,38 @@ export async function fetchPronunciationExamplesFromAI(
 
       clearTimeout(timeoutId);
       if (!response.ok) {
-        console.error(`❌ API request failed with status ${response.status}`);
+        console.error(`API request failed with status ${response.status}`);
         await redis.quit();
         throw new Error(`API request failed with status ${response.status}`);
       }
 
       const data = await response.json();
-      console.log(`📊 Received API response data`);
-
       const content = data.choices[0].message.content;
-      console.log(`📄 Raw content from API:`, content);
 
       if (!content || content.trim() === "") {
-        console.error("❌ Empty response from API");
+        console.error("Empty response from API");
         await redis.quit();
         throw new Error("Empty response from API");
       }
 
       try {
-        const examples: Example[] = JSON.parse(content);
-        console.log("✅ Successfully parsed examples:", examples.length);
+        const newExamples: Example[] = JSON.parse(content);
+
+        // Add or ensure wordStatus is 'unanswered' for all new examples
+        const processedExamples = newExamples.map((example) => ({
+          ...example,
+          wordStatus: example.wordStatus || ("unanswered" as const),
+        }));
+
+        // Combine existing learning words with new ones
+        const combinedExamples = [...learningWords, ...processedExamples];
+
+        // Update learning words in Redis
+        await redis.set(learningWordsKey, JSON.stringify(combinedExamples));
 
         try {
           // Clean the content by parsing and re-stringifying
-          const cleanContent = JSON.stringify(examples);
+          const cleanContent = JSON.stringify(newExamples);
 
           // Add the current interaction to chat history
           chatHistory.push(userMessage);
@@ -271,28 +380,24 @@ export async function fetchPronunciationExamplesFromAI(
 
           // Store updated chat history
           await redis.set(historyKey, JSON.stringify(chatHistory));
-          console.log(
-            `💾 Updated chat history for ${ruleType} with ${chatHistory.length} messages`
-          );
         } catch (saveError) {
-          console.error(`❌ Failed to save chat history: ${saveError}`);
+          console.error(`Failed to save chat history: ${saveError}`);
         }
 
         await redis.quit();
-        return examples;
+        return combinedExamples.slice(0, count);
       } catch (jsonError) {
-        console.error("❌ Failed to parse AI response as JSON", jsonError);
+        console.error("Failed to parse AI response as JSON", jsonError);
         await redis.quit();
         throw new Error("Invalid response format from AI service");
       }
     } catch (apiError) {
-      console.error(`❌ API or parsing error:`, apiError);
+      console.error(`API or parsing error:`, apiError);
       await redis.quit();
       throw apiError;
     }
   } catch (error) {
-    console.error(`❌ Error fetching ${ruleType} examples:`, error);
-    console.log(`⚠️ Returning fallback data for ${ruleType}`);
+    console.error(`Error fetching ${ruleType} examples:`, error);
 
     return ruleType === "nasalization"
       ? [
@@ -301,12 +406,14 @@ export async function fetchPronunciationExamplesFromAI(
             pronunciation: "항년",
             meaning: "Grade (in school)",
             rule: "ㄱ + ㄴ → ㅇ + ㄴ",
+            wordStatus: "unanswered",
           },
           {
             word: "법률",
             pronunciation: "범뉼",
             meaning: "Law",
             rule: "ㅂ + ㄹ → ㅁ + ㄴ",
+            wordStatus: "unanswered",
           },
         ]
       : [
@@ -315,12 +422,14 @@ export async function fetchPronunciationExamplesFromAI(
             pronunciation: "실라",
             meaning: "Silla (ancient Korean kingdom)",
             rule: "ㄴ + ㄹ → ㄹ + ㄹ",
+            wordStatus: "unanswered",
           },
           {
             word: "설날",
             pronunciation: "설랄",
             meaning: "New Year's Day",
             rule: "ㄹ + ㄴ → ㄹ + ㄹ",
+            wordStatus: "unanswered",
           },
         ];
   }
