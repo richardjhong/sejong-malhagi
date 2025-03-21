@@ -17,9 +17,38 @@ const getRedisClient = () => {
 
 export const verifyPronunciation = async (
   userAnswer: string,
-  correctAnswer: string
+  correctAnswer: string,
+  example: Example,
+  ruleType: PronunciationRuleType
 ) => {
   const isCorrect = userAnswer.trim() === correctAnswer.trim();
+
+  if (!isCorrect) {
+    try {
+      const redis = getRedisClient();
+      const incorrectWordsKey = `incorrect_words:${ruleType}`;
+      let incorrectWords = [];
+      const storedWords = await redis.get(incorrectWordsKey);
+
+      if (storedWords) {
+        incorrectWords = JSON.parse(storedWords);
+      }
+
+      const existingIndex = incorrectWords.findIndex(
+        (w: Example) => w.word === example.word
+      );
+
+      if (existingIndex === -1) {
+        incorrectWords.push(example);
+        await redis.set(incorrectWordsKey, JSON.stringify(incorrectWords));
+        console.log(`Added incorrect word: ${example.word}`);
+      }
+
+      await redis.quit();
+    } catch (error) {
+      console.error(`❌ Error storing incorrect word: ${error}`);
+    }
+  }
 
   return {
     isCorrect,
@@ -49,11 +78,9 @@ export async function fetchPronunciationExamplesFromAI(
   );
 
   try {
-    // Initialize Redis client
     const redis = getRedisClient();
     const historyKey = `chat_history:${ruleType}`;
 
-    // Retrieve chat history
     let chatHistory: string[] = [];
     try {
       const storedHistory = await redis.get(historyKey);
@@ -121,19 +148,30 @@ export async function fetchPronunciationExamplesFromAI(
 
     const prompt = `Generate ${count} authentic examples of Korean ${ruleType} (${
       ruleInfo.koreanName
-    }) ${ruleInfo.description}. Use ${
+    }) ${ruleInfo.description}. 
+    
+    IMPORTANT RULES TO FOLLOW:
+    1. ONLY use examples that EXACTLY match the specific rules found at ${
       ruleType === "nasalization"
         ? "https://www.mykoreanlesson.com/post/korean-pronunciation-lesson-consonant-assimilation-nasalization"
         : "https://www.mykoreanlesson.com/post/korean-pronunciation-lesson-consonant-assimilation-liquidization"
-    } as the ultimate reference for the rule.
+    }.
+    2. For nasalization, these rules are:
+       - When ㄱ or any related sound (ㄲ, ㅋ, ㄱㅅ, ㄹㄱ) meets ㄴ or ㅁ, it changes to ㅇ
+       - When ㄷ or any related sound (ㅅ, ㅆ, ㅈ, ㅊ, ㅌ, ㅎ) meets ㄴ or ㅁ, it changes to ㄴ
+       - When ㅂ or any related sound (ㅍ, ㄹㅂ, ㄹㅍ, ㄹㅅ) meets ㄴ or ㅁ, it changes to ㅁ
+    3. For liquidization, these rules are:
+       - When ㄴ meets ㄹ, it changes to ㄹ
+       - When ㄹ meets ㄴ, the ㄴ changes to ㄹ
+    4. DO NOT include any examples that don't perfectly match these rules. No exceptions.
+    5. If you are unsure whether an example follows the rules, DO NOT include it and generate a different example.
+    6. Review the previous chat history to avoid repeating previous examples.
     
     For each example, include:
     1. The Korean word (using Hangul)
     2. How it's actually pronounced with the ${ruleType} rule applied (using Hangul) 
     3. The meaning in English
-    4. Review the previous chat history messages with a role of 'system' and do not repeat the same word choices from before.
-    5. The specific rule applied that must conform to one of the rules in the aforementioned link.
-    6. If none of the rules are directly applicable to the example, then replace with a new example that does comply with following one of the rules. i.e. do not include the non-compliant example and do not count it towards the ${count}
+    4. The specific rule applied (must be one of the rules listed above)
     
     Make sure the examples are varied in complexity and common in everyday Korean.
     Format the response as a valid JSON array with objects having these fields: word, pronunciation, meaning, rule. 
@@ -219,14 +257,19 @@ export async function fetchPronunciationExamplesFromAI(
         console.log("✅ Successfully parsed examples:", examples.length);
 
         try {
-          chatHistory.push(userMessage);
-          chatHistory.push(content);
+          // Clean the content by parsing and re-stringifying
+          const cleanContent = JSON.stringify(examples);
 
-          // Keep only the last 6 messages (3 interactions) to prevent history from growing too large
+          // Add the current interaction to chat history
+          chatHistory.push(userMessage);
+          chatHistory.push(cleanContent);
+
+          // Keep only the last 6 messages (3 interactions)
           if (chatHistory.length > 6) {
             chatHistory = chatHistory.slice(chatHistory.length - 6);
           }
 
+          // Store updated chat history
           await redis.set(historyKey, JSON.stringify(chatHistory));
           console.log(
             `💾 Updated chat history for ${ruleType} with ${chatHistory.length} messages`
