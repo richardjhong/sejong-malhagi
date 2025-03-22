@@ -265,7 +265,7 @@ export async function fetchPronunciationExamplesFromAI(
     3. For liquidization, these rules are:
        - When ㄴ meets ㄹ, it changes to ㄹ
        - When ㄹ meets ㄴ, the ㄴ changes to ㄹ
-    4. DO NOT include any examples that don't perfectly match these rules. No exceptions.
+    4. DO NOT include any examples that don't perfectly match these rules (I'm looking for how it sounds in real spoken Korean, not just formal orthography). No exceptions. 
     5. If you are unsure whether an example follows the rules, DO NOT include it and generate a different example.
     6. Review the previous chat history to avoid repeating previous examples.
     7. Do NOT include any of these words that have already been answered: ${Array.from(
@@ -274,7 +274,7 @@ export async function fetchPronunciationExamplesFromAI(
     
     For each example, include:
     1. The Korean word (using Hangul)
-    2. How it's actually pronounced with the ${ruleType} rule applied (using Hangul) 
+    2. How it's actually pronounced with the ${ruleType} rule applied (using Hangul). Only include the word with the rule applied, not the original word.
     3. The meaning in English
     4. The specific rule applied (must be one of the rules listed above)
     
