@@ -15,18 +15,9 @@ const ExampleSkeleton = () => (
 
 const LiquidizationExamplesLoader = async () => {
   try {
-    console.log("🔍 Fetching liquidization examples from Perplexity AI...");
     const aiExamples = await fetchPronunciationExamplesFromAI(
       "liquidization",
-      5
-    );
-
-    console.log(
-      "✅ Received AI examples:",
-      JSON.stringify(aiExamples, null, 2)
-    );
-    console.log(
-      `📊 Retrieved ${aiExamples.length} liquidization examples from AI`
+      10
     );
 
     if (aiExamples && aiExamples.length >= 3) {

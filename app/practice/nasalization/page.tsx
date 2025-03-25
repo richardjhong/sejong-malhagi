@@ -17,7 +17,7 @@ const NasalizationExamplesLoader = async () => {
   try {
     const aiExamples = await fetchPronunciationExamplesFromAI(
       "nasalization",
-      5
+      10
     );
 
     if (aiExamples && aiExamples.length >= 3) {
