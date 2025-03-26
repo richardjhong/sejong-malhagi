@@ -71,9 +71,6 @@ export async function fetchPronunciationExamplesFromAI(
     const storedLearningWords = await redis.get(learningWordsKey);
     if (storedLearningWords) {
       learningWords = JSON.parse(storedLearningWords);
-      console.log(
-        `Retrieved ${learningWords.length} learning words for ${ruleType}`
-      );
     }
 
     // Get correct words to avoid duplicates
@@ -81,28 +78,22 @@ export async function fetchPronunciationExamplesFromAI(
     const storedCorrectWords = await redis.get(correctWordsKey);
     if (storedCorrectWords) {
       correctWords = JSON.parse(storedCorrectWords);
-      console.log(
-        `Retrieved ${correctWords.length} correct words for ${ruleType}`
-      );
     }
 
     // If we have enough learning words, return them
     if (learningWords.length >= count) {
-      console.log(`Returning ${count} existing learning words`);
       await redis.quit();
       return learningWords.slice(0, count);
     }
 
     // If we have some but not enough learning words, we'll need to get more
     const neededCount = count - learningWords.length;
-    console.log(`Need to generate ${neededCount} new words`);
 
     let chatHistory: string[] = [];
     try {
       const storedHistory = await redis.get(historyKey);
       if (storedHistory) {
         chatHistory = JSON.parse(storedHistory);
-        console.log(`Retrieved chat history for ${ruleType}`);
       }
     } catch (redisError) {
       console.warn(`Could not retrieve chat history: ${redisError}`);
@@ -130,8 +121,6 @@ export async function fetchPronunciationExamplesFromAI(
     ]);
 
     const prompt = createPrompt(ruleType, ruleInfo, neededCount, existingWords);
-    console.log(`Generated prompt for ${ruleType}`);
-    console.log(`Calling Perplexity API...`);
 
     const randomSeed = Math.floor(Math.random() * 1000000).toString();
     const userMessage = `${prompt}\n\nRemember to ONLY return a valid JSON array. Seed: ${randomSeed}`;
@@ -154,9 +143,6 @@ export async function fetchPronunciationExamplesFromAI(
 
       // Update learning words in Redis
       await redis.set(learningWordsKey, JSON.stringify(combinedExamples));
-      console.log(
-        `Updated learning words for ${ruleType} with ${combinedExamples.length} words`
-      );
 
       try {
         // Clean the content by parsing and re-stringifying
@@ -173,7 +159,6 @@ export async function fetchPronunciationExamplesFromAI(
 
         // Store updated chat history
         await redis.set(historyKey, JSON.stringify(chatHistory));
-        console.log(`Updated chat history for ${ruleType}`);
       } catch (saveError) {
         console.error(`Failed to save chat history: ${saveError}`);
       }
@@ -220,12 +205,13 @@ function createPrompt(
 ): string {
   return `Generate ${neededCount} authentic examples of Korean ${ruleType} (${
     ruleInfo.koreanName
-  }) ${ruleInfo.description}. 
+  }) ${
+    ruleInfo.description
+  }.Make sure that ${ruleType} is relevant to the examples and do not generate examples where this is not applicable.
     
     IMPORTANT RULES TO FOLLOW:
-    1. The following are strict rules for pronunciation; do not deviate from them and be able to directly cite the rule in your response: ${pronunciationRules[
-      ruleType
-    ].rules.join("\n    ")}
+    1. The following are strict rules for pronunciation; do not deviate from them and be able to directly cite the rule in your response: 
+    ${pronunciationRules[ruleType].rules.join("\n    ")}
     2. DO NOT include any examples that don't perfectly match these rules (I'm looking for how it sounds in real spoken Korean, not just formal orthography). No exceptions. 
     3. If you are unsure whether an example follows the rules, DO NOT include it and generate a different example. i.e. if you cannot directly cite one of the rules in the first bullet point above, do not include it and generate a different example. The disregarded example does not count towards the ${neededCount} examples.
     4. Review the previous chat history to avoid repeating previous examples.
@@ -237,20 +223,12 @@ function createPrompt(
     1. The original Korean word (using Hangul) in the "word" field
     2. How it's actually pronounced with the ${ruleType} rule applied (using Hangul) in the "pronunciation" field
     3. The meaning in English in the "meaning" field
-    4. The specific rule applied (must be one of the rules listed above) in the "rule" field
-    
-    IMPORTANT FORMATTING RULES:
-    1. The "word" field MUST contain the original Korean word in Hangul
-    2. The "pronunciation" field MUST contain how the word is actually pronounced with the rule applied
-    3. Both fields MUST be populated - never leave them empty
-    4. Do not include any non-Korean characters in these fields
-    5. The word and pronunciation should be different (if they're the same, it's not a valid example)
+    4. The specific rule applied (must be one of the rules listed above) in the "rule" field. If the this specific rule does not directly match one of the rules in the IMPORTANT RULES TO FOLLOW section, then disregard this example, do not count it towards the total count, and generate a new example.
     
     Make sure the examples are varied in complexity and common in everyday Korean.
     Format the response as a valid JSON array with objects having these fields: word, pronunciation, meaning, rule, wordStatus. 
-    The wordStatus field should ALWAYS be set to "unanswered" for all examples.
-    
-    IMPORTANT: Return ONLY the raw JSON array WITHOUT any markdown formatting, code blocks, or explanatory text. Do not wrap the JSON in \`\`\` or any other formatting. The response should begin with [ and end with ] and be valid JSON that can be directly parsed.`;
+    The wordStatus field should ALWAYS be set to "unanswered" for all examples. 
+  `;
 }
 
 /**
@@ -269,7 +247,7 @@ async function fetchExamplesFromPerplexity(
       {
         role: "system",
         content:
-          "You are a Korean linguistics expert specialized in pronunciation rules. You must ONLY output valid JSON arrays containing Korean pronunciation examples following the user's instructions. No explanations, no code blocks, just valid JSON that starts with [ and ends with ].",
+          "You are a Korean linguistics expert specialized in pronunciation rules. You must ONLY output valid JSON arrays containing Korean pronunciation examples following the user's instructions. No explanations, no code blocks, no embedded line breaks, just valid JSON that starts with [ and ends with ].",
       },
     ];
 
@@ -288,9 +266,6 @@ async function fetchExamplesFromPerplexity(
       role: "user",
       content: userMessage,
     });
-
-    console.log(`Sending ${messages.length} messages to API`);
-    console.log("messages being sent: ", messages);
 
     const response = await fetch("https://api.perplexity.ai/chat/completions", {
       method: "POST",
@@ -315,7 +290,6 @@ async function fetchExamplesFromPerplexity(
     }
 
     const data = await response.json();
-    console.log(`Received API response data`);
 
     const content = data.choices[0].message.content;
 
@@ -324,41 +298,10 @@ async function fetchExamplesFromPerplexity(
       throw new Error("Empty response from API");
     }
 
+    const sanitizedContent = JSON.parse(content);
+
     try {
-      // Try to extract JSON array from content
-      // This regex looks for anything that looks like a JSON array
-      const jsonMatch = content.match(/\[[\s\S]*\]/);
-
-      if (!jsonMatch) {
-        console.error("Could not find valid JSON array in response");
-        console.log("Raw content:", content);
-        throw new Error("Could not find valid JSON array in response");
-      }
-
-      const jsonString = jsonMatch[0];
-      const newExamples: Example[] = JSON.parse(jsonString);
-
-      // Validate that all required fields are populated
-      const validExamples = newExamples.filter((example) => {
-        const isValid =
-          example.word &&
-          example.pronunciation &&
-          example.meaning &&
-          example.rule &&
-          example.wordStatus === "unanswered" &&
-          example.word !== example.pronunciation; // Ensure word and pronunciation are different
-        if (!isValid) {
-          console.warn("Invalid example found:", example);
-        }
-        return isValid;
-      });
-
-      if (validExamples.length === 0) {
-        throw new Error("No valid examples found in response");
-      }
-
-      console.log(`Successfully parsed ${validExamples.length} valid examples`);
-      return validExamples;
+      return sanitizedContent;
     } catch (jsonError) {
       console.error("Failed to parse AI response as JSON", jsonError);
       console.log("Raw content:", content);
