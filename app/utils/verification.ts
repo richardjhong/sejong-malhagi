@@ -40,7 +40,6 @@ export const verifyPronunciation = async (
       if (existingIndex === -1) {
         correctWords.push(updatedExample);
         await redis.set(correctWordsKey, JSON.stringify(correctWords));
-        console.log(`Added to correct words: ${example.word}`);
       }
 
       // Remove from learning words if present
@@ -56,7 +55,6 @@ export const verifyPronunciation = async (
         if (learningIndex !== -1) {
           learningWords.splice(learningIndex, 1);
           await redis.set(learningWordsKey, JSON.stringify(learningWords));
-          console.log(`Removed from learning words: ${example.word}`);
         }
       }
     } else {
@@ -81,7 +79,6 @@ export const verifyPronunciation = async (
       }
 
       await redis.set(learningWordsKey, JSON.stringify(learningWords));
-      console.log(`Updated learning word: ${example.word}`);
     }
 
     await redis.quit();
