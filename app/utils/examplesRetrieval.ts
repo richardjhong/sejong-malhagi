@@ -4,7 +4,6 @@ import { Example } from "@/app/lib/data";
 import { getRedisClient } from "./redis";
 import { PronunciationRuleType, RuleDetails } from "./types";
 
-// Rule details data
 const ruleDetails: Record<PronunciationRuleType, RuleDetails> = {
   nasalization: {
     koreanName: "비음화",
@@ -66,27 +65,23 @@ export async function fetchPronunciationExamplesFromAI(
     const correctWordsKey = `correct_words:${ruleType}`;
     const learningWordsKey = `learning_words:${ruleType}`;
 
-    // First check if we have existing learning words (incorrect or unanswered)
     let learningWords: Example[] = [];
     const storedLearningWords = await redis.get(learningWordsKey);
     if (storedLearningWords) {
       learningWords = JSON.parse(storedLearningWords);
     }
 
-    // Get correct words to avoid duplicates
     let correctWords: Example[] = [];
     const storedCorrectWords = await redis.get(correctWordsKey);
     if (storedCorrectWords) {
       correctWords = JSON.parse(storedCorrectWords);
     }
 
-    // If we have enough learning words, return them
     if (learningWords.length >= count) {
       await redis.quit();
       return learningWords.slice(0, count);
     }
 
-    // If we have some but not enough learning words, we'll need to get more
     const neededCount = count - learningWords.length;
 
     let chatHistory: string[] = [];
@@ -99,7 +94,6 @@ export async function fetchPronunciationExamplesFromAI(
       console.warn(`Could not retrieve chat history: ${redisError}`);
     }
 
-    // If we don't need any new words, return what we have
     if (neededCount <= 0) {
       await redis.quit();
       return learningWords;
@@ -114,7 +108,6 @@ export async function fetchPronunciationExamplesFromAI(
 
     const ruleInfo = ruleDetails[ruleType];
 
-    // Create a set of existing words to avoid duplicates
     const existingWords = new Set([
       ...correctWords.map((w) => w.word),
       ...learningWords.map((w) => w.word),
@@ -132,32 +125,25 @@ export async function fetchPronunciationExamplesFromAI(
         chatHistory
       );
 
-      // Add or ensure wordStatus is 'unanswered' for all new examples
       const processedExamples = newExamples.map((example) => ({
         ...example,
         wordStatus: example.wordStatus || ("unanswered" as const),
       }));
 
-      // Combine existing learning words with new ones
       const combinedExamples = [...learningWords, ...processedExamples];
 
-      // Update learning words in Redis
       await redis.set(learningWordsKey, JSON.stringify(combinedExamples));
 
       try {
-        // Clean the content by parsing and re-stringifying
         const cleanContent = JSON.stringify(newExamples);
 
-        // Add the current interaction to chat history
         chatHistory.push(userMessage);
         chatHistory.push(cleanContent);
 
-        // Keep only the last 6 messages (3 interactions)
         if (chatHistory.length > 6) {
           chatHistory = chatHistory.slice(chatHistory.length - 6);
         }
 
-        // Store updated chat history
         await redis.set(historyKey, JSON.stringify(chatHistory));
       } catch (saveError) {
         console.error(`Failed to save chat history: ${saveError}`);
@@ -194,9 +180,6 @@ const pronunciationRules = {
   },
 };
 
-/**
- * Creates the prompt for the AI
- */
 function createPrompt(
   ruleType: PronunciationRuleType,
   ruleInfo: RuleDetails,
@@ -231,9 +214,6 @@ function createPrompt(
   `;
 }
 
-/**
- * Fetches examples from Perplexity API
- */
 async function fetchExamplesFromPerplexity(
   apiKey: string,
   userMessage: string,
@@ -251,16 +231,16 @@ async function fetchExamplesFromPerplexity(
       },
     ];
 
-    if (chatHistory.length > 0) {
-      for (let i = 0; i < chatHistory.length; i += 2) {
-        if (i < chatHistory.length) {
-          messages.push({ role: "user", content: chatHistory[i] });
-        }
-        if (i + 1 < chatHistory.length) {
-          messages.push({ role: "assistant", content: chatHistory[i + 1] });
-        }
-      }
-    }
+    // if (chatHistory.length > 0) {
+    //   for (let i = 0; i < chatHistory.length; i += 2) {
+    //     if (i < chatHistory.length) {
+    //       messages.push({ role: "user", content: chatHistory[i] });
+    //     }
+    //     if (i + 1 < chatHistory.length) {
+    //       messages.push({ role: "assistant", content: chatHistory[i + 1] });
+    //     }
+    //   }
+    // }
 
     messages.push({
       role: "user",
