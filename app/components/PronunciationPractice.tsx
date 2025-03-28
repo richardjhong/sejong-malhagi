@@ -62,7 +62,6 @@ const PronunciationPractice = ({
       setShowPronunciation(true);
 
       if (result.isCorrect) {
-        // Update local state
         const newAnswered = new Set(answeredExamples);
         newAnswered.add(currentExample);
         setAnsweredExamples(newAnswered);
